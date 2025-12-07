@@ -191,7 +191,7 @@ static MenuItem gVideoMenu[] =
 		.type = kMenuItem_Cycler, .cycler =
 		{
 			.caption = "monitor",
-			.valuePtr = &gGamePrefs.preferredDisplayMinus1,
+			.valuePtr = &gGamePrefs.displayNum,
 			.callback = OnChangeFullscreenMode,
 			.numChoices = 1,  // set dynamically
 			.choices =
@@ -496,7 +496,7 @@ static void OnMenuEntered(void)
 		}
 
 		{
-			int row = FindRowControlling(&gGamePrefs.preferredDisplayMinus1);
+			int row = FindRowControlling(&gGamePrefs.displayNum);
 			GAME_ASSERT(row >= 0);
 
 			int numDisplays = GetNumDisplays();
