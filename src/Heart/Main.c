@@ -1265,7 +1265,7 @@ static void InitDefaultPrefs(void)
 	gGamePrefs.displayMode = kDisplayMode_FullscreenStretched;
 	gGamePrefs.filterDithering = true;
 	gGamePrefs.windowedZoom = 0;	// 0 == automatic
-	gGamePrefs.preferredDisplayMinus1 = 0;
+	gGamePrefs.displayNum = 0;
 	gGamePrefs.uncappedFramerate = true;
 	gGamePrefs.music = true;
 	gGamePrefs.soundEffects = true;
