@@ -517,20 +517,6 @@ static void MoveToPreferredDisplay(void)
 
 void SetFullscreenMode(bool enforceDisplayPref)
 {
-#if OSXPPC
-	if (gGamePrefs.displayMode == kDisplayMode_Windowed)
-	{
-		SDL_ShowCursor(1);
-		SDL_SetWindowFullscreen(gSDLWindow, 0);
-		SetOptimalWindowSize();
-	}
-	else
-	{
-		SDL_ShowCursor(0);
-		SDL_SetWindowSize(gSDLWindow, 640, 480);
-		SDL_SetWindowFullscreen(gSDLWindow, SDL_WINDOW_FULLSCREEN);
-	}
-#else
 	if (gGamePrefs.displayMode == kDisplayMode_Windowed)
 	{
 		SDL_SetWindowFullscreen(gSDLWindow, false);
@@ -568,7 +554,6 @@ void SetFullscreenMode(bool enforceDisplayPref)
 		SDL_ShowCursor();
 	else
 		SDL_HideCursor();
-#endif
 }
 
 int GetNumDisplays(void)

@@ -167,9 +167,7 @@ void UpdateInput(void)
 	// --------------------------------------------
 	// Parse system key chords
 
-#if !OSXPPC	// on OSXPPC, hot-switching fullscreen mode is flaky
 	ParseAltEnter();
-#endif
 
 	if ((!gIsInGame || gIsGamePaused) && IsCmdQPressed())
 	{
