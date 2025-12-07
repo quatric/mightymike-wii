@@ -132,11 +132,7 @@ static MenuItem gVideoMenu[] =
 			.caption = "playfield size",
 			.callback = OnChangePlayfieldSizeViaSettings,
 			.valuePtr = &gGamePrefs.pfSize,
-#if OSXPPC
-			.numChoices = 2,		// don't expose extended
-#else
 			.numChoices = 3,
-#endif
 			.choices = { "small, 68k original", "medium, ppc original", "extended, widescreen" },
 		}
 	},
@@ -157,13 +153,8 @@ static MenuItem gVideoMenu[] =
 			.caption = "display mode",
 			.callback = OnChangeFullscreenMode,
 			.valuePtr = &gGamePrefs.displayMode,
-#if OSXPPC
-			.numChoices = 2,
-			.choices = {"windowed", "fullscreen"},
-#else
 			.numChoices = 3,
 			.choices = {"windowed", "fullscreen, crisp", "fullscreen, stretched"},
-#endif
 		},
 	},
 
@@ -556,15 +547,7 @@ static void OnDone(void)
 
 static void OnChangeFullscreenMode(void)
 {
-#if !OSXPPC
 	SetFullscreenMode(true);
-#else
-	int y = 340;
-	MakeText("  N O T E: the new display mode will", kColumnX[0], y, 0, 0);
-	MakeText("apply after restarting the game",    kColumnX[0], y+24, 0, 0);
-	ForceUpdateBackground();
-	DumpBackground();
-#endif
 }
 
 static void OnChangePlayfieldSizeViaSettings(void)

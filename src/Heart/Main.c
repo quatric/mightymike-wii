@@ -1261,15 +1261,9 @@ static void InitDefaultPrefs(void)
 	gGamePrefs.interlaceMode = false;
 	gGamePrefs.difficulty = DIFFICULTY_NORMAL;
 
-#if !OSXPPC
 	gGamePrefs.pfSize = PFSIZE_WIDE;
 	gGamePrefs.displayMode = kDisplayMode_FullscreenStretched;
 	gGamePrefs.filterDithering = true;
-#else
-	gGamePrefs.pfSize = PFSIZE_MEDIUM;
-	gGamePrefs.displayMode = kDisplayMode_FullscreenCrisp;
-	gGamePrefs.filterDithering = false;
-#endif
 	gGamePrefs.windowedZoom = 0;	// 0 == automatic
 	gGamePrefs.preferredDisplayMinus1 = 0;
 	gGamePrefs.uncappedFramerate = true;

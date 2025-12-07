@@ -205,11 +205,7 @@ void GLRender_Init(void)
 		DoAlert(message);
 	}
 
-#if OSXPPC
-	gCanDoHQStretch = false;
-#else
 	gCanDoHQStretch = gMaxTextureSize >= 2*kFrameTextureWidth;
-#endif
 
 	GL_GET_PROC_ADDRESS(PFNGLGENBUFFERSARBPROC, glGenBuffersARB);
 	GL_GET_PROC_ADDRESS(PFNGLDELETEBUFFERSARBPROC, glDeleteBuffersARB);
