@@ -56,9 +56,19 @@ set(POMME_NO_QD3D		true)
 set(POMME_NO_VIDEO		true)
 add_compile_definitions(POMME_CASE_SENSITIVE_FSSPEC=1)
 
+# Wii has no SDL3 port to find_package(); Pomme's SoundMixer/Input code gets
+# our own SDL3-compatible header shim instead (src/SDL3/), and there's no
+# separate OpenGL package either -- rendering goes through opengx (GX-backed
+# fixed-function GL) via the same shim. See the __wii__ blocks below.
+if(CMAKE_SYSTEM_NAME STREQUAL "NintendoWii")
+	set(POMME_SDL3_INCLUDE_DIR "${GAME_SRCDIR}")
+endif()
+
 #------------------------------------------------------------------------------
 # FIND SDL
 #------------------------------------------------------------------------------
+
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "NintendoWii")
 
 # If SDL3_DIR wasn't specified, discover if the user put some prebuilt SDL3
 # package in the 'extern' directory
@@ -89,13 +99,17 @@ else()
 	add_subdirectory("${SDL3_DIR}" EXCLUDE_FROM_ALL)
 endif()
 
+endif() # NOT NintendoWii
+
 #------------------------------------------------------------------------------
 # DEPENDENCIES
 #------------------------------------------------------------------------------
 
 add_subdirectory(extern/Pomme)
 
-find_package(OpenGL REQUIRED)  # only actually required if we want to force GLRENDER
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "NintendoWii")
+	find_package(OpenGL REQUIRED)  # only actually required if we want to force GLRENDER
+endif()
 
 #------------------------------------------------------------------------------
 # EXECUTABLE TARGET
@@ -106,6 +120,12 @@ configure_file(${GAME_SRCDIR}/Headers/version.h.in ${GAME_SRCDIR}/Headers/versio
 
 # Glob all source files
 file(GLOB_RECURSE GAME_SOURCES CONFIGURE_DEPENDS ${GAME_SRCDIR}/*.c ${GAME_SRCDIR}/*.cpp ${GAME_SRCDIR}/*.h)
+
+# The Wii*.c platform files (src/Wii*.c) only build for NintendoWii -- they
+# include devkitPPC/libogc headers that don't exist on any other platform.
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "NintendoWii")
+	list(FILTER GAME_SOURCES EXCLUDE REGEX "/Wii[A-Za-z]*\\.c$")
+endif()
 
 # Make source groups match file tree
 source_group(TREE ${GAME_SRCDIR} PREFIX "" FILES ${GAME_SOURCES})
@@ -123,6 +143,13 @@ add_executable(${GAME_TARGET} ${GAME_SOURCES})
 
 target_include_directories(${GAME_TARGET} PRIVATE ${GAME_SRCDIR}/Headers)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "NintendoWii")
+	target_include_directories(${GAME_TARGET} PRIVATE
+		${GAME_SRCDIR}                         # src/SDL3/ shim takes priority over any system SDL headers
+		${DEVKITPRO}/portlibs/wii/include      # opengx GL/gl.h, GL/glext.h
+	)
+endif()
+
 #------------------------------------------------------------------------------
 # COMPILER/LINKER OPTIONS
 #------------------------------------------------------------------------------
@@ -132,6 +159,10 @@ add_compile_definitions(
 	GLRENDER    # Mighty Mike only (comment out to use SDL's 2D renderer)
 	#NOVSYNC    # Mighty Mike only
 )
+
+if(CMAKE_SYSTEM_NAME STREQUAL "NintendoWii")
+	target_compile_definitions(${GAME_TARGET} PRIVATE __wii__)
+endif()
 
 target_compile_definitions(${GAME_TARGET} PRIVATE
 	GL_SILENCE_DEPRECATION)
@@ -192,6 +223,21 @@ endif()
 # LINK LIBRARIES
 #------------------------------------------------------------------------------
 
+if(CMAKE_SYSTEM_NAME STREQUAL "NintendoWii")
+	# No SDL3, no OpenGL::GL -- opengx (GX-backed GL) plus libogc's own
+	# subsystem libs stand in for both.
+	target_link_libraries(${GAME_TARGET} PRIVATE
+		Pomme
+		opengx
+		m
+		wiiuse
+		bte
+		fat
+		wiikeyboard
+		ogc
+	)
+else()
+
 # Link sanitizers first
 if(SANITIZE)
 	target_link_libraries(${GAME_TARGET} PRIVATE asan ubsan)
@@ -215,6 +261,13 @@ target_link_libraries(${GAME_TARGET} PRIVATE Pomme OpenGL::GL)
 # Add required frameworks for KillMacMouseAcceleration
 if(APPLE)
 	target_link_libraries(${GAME_TARGET} PRIVATE "-framework Foundation" "-framework IOKit")
+endif()
+
+endif() # NintendoWii
+
+if(CMAKE_SYSTEM_NAME STREQUAL "NintendoWii")
+	dkp_target_generate_symbol_list(${GAME_TARGET})
+	ogc_create_dol(${GAME_TARGET})
 endif()
 
 #------------------------------------------------------------------------------
