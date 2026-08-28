@@ -1,0 +1,47 @@
+<app version="1">
+	<name>Mighty Mike</name>
+	<coder>quatric</coder>
+	<version>1.0</version>
+	<release_date>20260828000000</release_date>
+	<short_description>Wii port of Mighty Mike (Pangea Software / jorio)</short_description>
+	<long_description>
+Unofficial Wii homebrew port of Mighty Mike, Iliyas Jorio's modern
+reimplementation of the 1995 Pangea Software game "Mutant Mike."
+Rendering runs through opengx (GX-backed fixed-function OpenGL); no
+game logic was changed to make this run.
+
+CONTROLS
+
+GameCube controller:
+  Control Stick - Move
+  A - Confirm / pause menu select
+  X - Shoot
+  Y - Radar
+  B - Next weapon / back out of menus
+  L / R - Cycle weapons
+  Start - Pause
+
+Wiimote + Nunchuk:
+  Nunchuk stick - Move
+  A - Confirm
+  B - Radar
+  Z - Shoot
+  C - Next weapon
+  Minus - Previous weapon
+  Plus - Pause
+  Home - Exit to the Homebrew Channel
+
+Wiimote only (held sideways, d-pad on the left):
+  D-pad - Move
+  A - Confirm
+  B - Radar
+  2 - Shoot
+  1 - Next weapon
+  Minus - Previous weapon
+  Plus - Pause
+  Home - Exit to the Homebrew Channel
+
+USB keyboard (if plugged in): arrow keys, WASD, and the game's other
+default PC keybindings all work as-is.
+	</long_description>
+</app>
