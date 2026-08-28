@@ -1263,7 +1263,17 @@ static void InitDefaultPrefs(void)
 
 	gGamePrefs.pfSize = PFSIZE_WIDE;
 	gGamePrefs.displayMode = kDisplayMode_FullscreenStretched;
+#ifdef __wii__
+	// Measured on real hardware: IndexedFramebufferToColor_FilterDithering
+	// (Heart/FilterThreads.c) running every frame at 640x480 on a single
+	// 243MHz Broadway core (no threading benefit -- Wii is single-core, so
+	// SDL_GetNumLogicalCPUCores()==1 and the game always takes the
+	// single-threaded path) was the dominant per-frame cost: ~80-100ms/frame
+	// with dithering on vs. far less with it off. Default off on Wii.
+	gGamePrefs.filterDithering = false;
+#else
 	gGamePrefs.filterDithering = true;
+#endif
 	gGamePrefs.windowedZoom = 0;	// 0 == automatic
 	gGamePrefs.displayNum = 0;
 	gGamePrefs.uncappedFramerate = true;
