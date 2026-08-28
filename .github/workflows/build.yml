@@ -20,9 +20,16 @@ jobs:
 
       - name: Install Wii dev packages
         shell: bash
+        # pkg.devkitpro.org returns 403 to GitHub-hosted runners intermittently
+        # (a known CDN/rate-limit issue, not specific to this project) -- retry
+        # a few times with backoff rather than syncing databases outright,
+        # since the base image already ships a reasonably current local DB.
         run: |
-          dkp-pacman -Syu --noconfirm
-          dkp-pacman -S --noconfirm wii-dev libfat-ogc wii-opengx wii-cmake general-tools
+          for i in 1 2 3 4 5; do
+            dkp-pacman -S --noconfirm --needed wii-dev libfat-ogc wii-opengx wii-cmake general-tools && break
+            echo "pacman attempt $i failed, retrying in 15s..."
+            sleep 15
+          done
 
       - name: Configure
         shell: bash
