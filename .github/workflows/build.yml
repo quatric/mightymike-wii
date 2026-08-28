@@ -7,6 +7,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write  # needed to create the release on a v* tag push
+
 jobs:
   build:
     runs-on: ubuntu-latest
