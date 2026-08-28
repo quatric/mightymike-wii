@@ -25,6 +25,10 @@
 
 #include <SDL3/SDL_opengl.h>
 #include <SDL3/SDL_opengl_glext.h>
+
+#ifdef __wii__
+#include <stdlib.h>
+#endif
 PFNGLGENBUFFERSARBPROC glGenBuffersARB;
 PFNGLDELETEBUFFERSARBPROC glDeleteBuffersARB;
 PFNGLBINDBUFFERARBPROC glBindBufferARB;
@@ -120,13 +124,37 @@ do { \
     GAME_ASSERT_MESSAGE((proc), "Missing OpenGL procedure " #proc); \
 } while(0)
 
+#ifdef __wii__
+// opengx (the fixed-function GL-on-GX layer used on Wii) implements
+// glMapBuffer/glBindBuffer/etc. for vertex/array buffers (what GX's
+// pipeline actually needs), but has no equivalent for a *pixel* unpack
+// buffer -- there's no GX-native "map GPU memory for the CPU to write
+// pixels into" concept. glMapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, ...)
+// reliably returns NULL there (confirmed via GAME_ASSERT(mappedBuffer)
+// failing on real hardware). Since PBO streaming is just an optimization
+// -- the same pixel data can be handed to glTexSubImage2D directly as a
+// plain CPU pointer -- Wii uses a plain heap buffer instead of a PBO.
+static void* gFramePixelBuffer = NULL;
+static int gFramePixelBufferSize = 0;
+#endif
+
 static void InitTextureAndPBO(int pixelZoom)
 {
 	glGenTextures(1, &gFrameTexture);
 	CHECK_GL_ERROR();
 
+#ifdef __wii__
+	int neededSize = kFrameTextureWidth * kFrameTextureHeight * kFrameBytesPerPixel * (pixelZoom * pixelZoom);
+	if (neededSize != gFramePixelBufferSize)
+	{
+		free(gFramePixelBuffer);
+		gFramePixelBuffer = malloc(neededSize);
+		gFramePixelBufferSize = neededSize;
+	}
+#else
 	glGenBuffersARB(1, &gFramePBO);
 	CHECK_GL_ERROR();
+#endif
 
 #if 0
 	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, gFramePBO);
@@ -170,11 +198,17 @@ static void DeleteTextureAndPBO(void)
 		gFrameTexture = 0;
 	}
 
+#ifdef __wii__
+	free(gFramePixelBuffer);
+	gFramePixelBuffer = NULL;
+	gFramePixelBufferSize = 0;
+#else
 	if (gFramePBO != 0)
 	{
 		glDeleteBuffersARB(1, &gFramePBO);
 		gFramePBO = 0;
 	}
+#endif
 }
 
 void GLRender_Init(void)
@@ -321,8 +355,16 @@ void GLRender_PresentFramebuffer(void)
 	int zvh = (isHQ ? 2 : 1) * vh;
 
 	//-------------------------------------------------------------------------
-	// Update PBO
+	// Update pixel buffer (see the __wii__ comment above InitTextureAndPBO
+	// for why Wii uses a plain heap buffer here instead of a PBO)
 
+#ifdef __wii__
+	void* mappedBuffer = gFramePixelBuffer;
+	GAME_ASSERT(mappedBuffer);
+
+	// now write data into the buffer, possibly in another thread
+	ConvertFramebufferMT(mappedBuffer);
+#else
 	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, gFramePBO);
 	CHECK_GL_ERROR();
 
@@ -340,6 +382,7 @@ void GLRender_PresentFramebuffer(void)
 
 	glUnmapBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB);
 	CHECK_GL_ERROR();
+#endif
 
 	//-------------------------------------------------------------------------
 	// Draw the quad
@@ -364,7 +407,13 @@ void GLRender_PresentFramebuffer(void)
 
 #if !DEFERRED_TEX_UPDATE
 	// Update the texture
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, zvw, zvh, kFramePixelFormat, kFramePixelType, NULL);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, zvw, zvh, kFramePixelFormat, kFramePixelType,
+#ifdef __wii__
+		gFramePixelBuffer  // no PBO bound on Wii -- this is a real CPU pointer, not an offset
+#else
+		NULL  // offset 0 into the currently-bound GL_PIXEL_UNPACK_BUFFER_ARB
+#endif
+	);
 	CHECK_GL_ERROR();
 #endif
 
@@ -387,7 +436,13 @@ void GLRender_PresentFramebuffer(void)
 	//-------------------------------------------------------------------------
 	// Update texture
 
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, zvw, zvh, kFramePixelFormat, kFramePixelType, NULL);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, zvw, zvh, kFramePixelFormat, kFramePixelType,
+#ifdef __wii__
+		gFramePixelBuffer  // no PBO bound on Wii -- this is a real CPU pointer, not an offset
+#else
+		NULL  // offset 0 into the currently-bound GL_PIXEL_UNPACK_BUFFER_ARB
+#endif
+	);
 	CHECK_GL_ERROR();
 #endif
 }
