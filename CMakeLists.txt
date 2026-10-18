@@ -275,6 +275,19 @@ endif() # NintendoWii
 if(CMAKE_SYSTEM_NAME STREQUAL "NintendoWii")
 	dkp_target_generate_symbol_list(${GAME_TARGET})
 	ogc_create_dol(${GAME_TARGET})
+
+	# Self-extracting xz-compressed copy of the .dol (FIX94's dolxz, see scripts/dolxz.sh)
+	option(WII_DOLXZ "Also build a dolxz-compressed ${GAME_TARGET}-xz.dol" ON)
+	if(WII_DOLXZ)
+		__dkp_target_derive_name(DOLXZ_INPUT ${GAME_TARGET} ".dol")
+		__dkp_target_derive_name(DOLXZ_OUTPUT ${GAME_TARGET} "-xz.dol")
+		add_custom_command(TARGET ${GAME_TARGET} POST_BUILD
+			COMMAND sh "${CMAKE_SOURCE_DIR}/scripts/dolxz.sh" "${DOLXZ_INPUT}" "${DOLXZ_OUTPUT}"
+			BYPRODUCTS "${DOLXZ_OUTPUT}"
+			COMMENT "Compressing ${GAME_TARGET}.dol with dolxz"
+			VERBATIM
+		)
+	endif()
 endif()
 
 #------------------------------------------------------------------------------

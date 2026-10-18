@@ -34,6 +34,9 @@ jobs:
             sleep 15
           done
 
+      - name: Install dolxz build dependencies
+        run: apt-get update -qq && apt-get install -y -qq --no-install-recommends gcc libc6-dev liblzma-dev pkg-config curl ca-certificates
+
       - name: Configure
         shell: bash
         run: |
@@ -50,7 +53,7 @@ jobs:
         run: |
           APPDIR=dist/apps/mightymike
           mkdir -p "$APPDIR"
-          cp build/MightyMike.dol "$APPDIR/boot.dol"
+          cp build/MightyMike-xz.dol "$APPDIR/boot.dol"
           cp packaging/wii/meta.xml "$APPDIR/meta.xml"
           cp packaging/wii/icon.png "$APPDIR/icon.png"
           cp -r build/Data "$APPDIR/Data"
