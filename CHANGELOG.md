@@ -1,5 +1,11 @@
 # Mighty Mike changelog
 
+- **Wii 1.1 (Oct. 18, 2026)**
+
+    - Checks GitHub for a newer Wii release at launch and shows a popup; A installs it over this copy and returns to the loader, B closes it.
+    - Controller scanning and the USB keyboard go through libinput-wii, updated to the latest version.
+    - `boot.dol` is a compressed self-extracting .dol and no longer hangs on boot in Dolphin.
+
 - **3.0.3 (NOT RELEASED YET)**
 
     - Updated to SDL 3
