@@ -1,7 +1,9 @@
 /*
  * WiiInput.c -- gamepad backend for the SDL3 shim, mapped onto real Wii
  * controllers via libogc PAD (GameCube controller) and WPAD (Wiimote /
- * Wiimote+Nunchuk / Classic Controller).
+ * Wiimote+Nunchuk / Classic Controller). libinput-wii initializes and scans
+ * the devices (and the USB keyboard) once per frame; the per-device mapping
+ * below then reads the scanned state.
  *
  * The game only ever opens a single SDL_Gamepad (see Heart/Input.c,
  * TryOpenGamepad) and polls its buttons/axes once per frame via
@@ -37,6 +39,7 @@
 #include <math.h>
 
 #include <SDL3/SDL.h>
+#include <input_wii.h>
 #include "WiiDebug.h"
 #include "WiiKeyboard.h"
 
@@ -62,16 +65,10 @@ static void InitWiiInput(void)
 
 	WiiCheckpoint("InitWiiInput: start");
 
-	PAD_Init();
-	WiiCheckpoint("InitWiiInput: PAD_Init done");
-
-	WPAD_Init();
-	WiiCheckpoint("InitWiiInput: WPAD_Init done");
-	WPAD_SetDataFormat(WPAD_CHAN_0, WPAD_FMT_BTNS_ACC_IR);
-	WPAD_SetVRes(WPAD_CHAN_0, 640, 480);
-
-	WiiKeyboard_Init();
-	WiiCheckpoint("InitWiiInput: WiiKeyboard_Init done -- complete");
+	/* GameCube pads, Wiimotes and the USB keyboard. No mouse: there is no
+	   pointer in the game. */
+	INPUT_InitEx(INPUT_INIT_NO_MOUSE);
+	WiiCheckpoint("InitWiiInput: INPUT_InitEx done -- complete");
 
 	sInputInitialized = true;
 }
@@ -87,20 +84,15 @@ static int16_t StickAxis(s8 raw)
 
 static void PollGameCube(bool* anyConnected)
 {
-	/* Scan all 4 ports rather than assuming chan 0 -- on real hardware the
-	   player's controller may not be in slot 1. */
-	u32 connected = PAD_ScanPads();
-	if (connected == 0)
-		return;
-
+	/* Read all 4 ports rather than assuming chan 0 -- on real hardware the
+	   player's controller may not be in slot 1. INPUT_Update() has scanned
+	   them; an empty port reads as all zero. */
 	for (int chan = 0; chan < 4; chan++)
 	{
-		if (!(connected & (1 << chan)))
-			continue;
-
-		*anyConnected = true;
-
 		u16 held = PAD_ButtonsHeld(chan);
+		if (held || PAD_StickX(chan) || PAD_StickY(chan))
+			*anyConnected = true;
+
 		sState.buttons[SDL_GAMEPAD_BUTTON_SOUTH] |= (held & PAD_BUTTON_A) != 0;
 		sState.buttons[SDL_GAMEPAD_BUTTON_EAST]  |= (held & PAD_BUTTON_B) != 0;
 		sState.buttons[SDL_GAMEPAD_BUTTON_WEST]  |= (held & PAD_BUTTON_X) != 0;
@@ -219,10 +211,7 @@ static void PollWiimoteChannel(int chan, bool* anyConnected)
 
 static void PollWiimote(bool* anyConnected)
 {
-	/* Scan all 4 channels, same rationale as PollGameCube(). */
-	if (WPAD_ScanPads() <= WPAD_ERR_NONE)
-		return;
-
+	/* Read all 4 channels, same rationale as PollGameCube(). */
 	for (int chan = 0; chan < 4; chan++)
 		PollWiimoteChannel(chan, anyConnected);
 }
@@ -231,6 +220,7 @@ static void PollWiimote(bool* anyConnected)
 void WiiInput_Poll(void)
 {
 	InitWiiInput();
+	INPUT_Update();
 
 	memset(&sState, 0, sizeof(sState));
 
@@ -303,7 +293,7 @@ bool SDL_InitHapticRumble(SDL_Haptic* haptic) { (void)haptic; return false; }
 
 /* ----------------------------------------------------------------------
  * Keyboard/mouse -- Wii has no built-in keyboard, but a USB one works
- * (see WiiKeyboard.c, backed by libogc's wiikeyboard driver). Mouse is
+ * (see WiiKeyboard.c, backed by libinput-wii). Mouse is
  * still unsupported (nothing to plug in on real hardware).
  * ------------------------------------------------------------------- */
 

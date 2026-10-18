@@ -1,10 +1,9 @@
 /*
  * WiiKeyboard.c -- USB keyboard support for the SDL3 shim, backed by
- * libogc's wiikeyboard (USB HID boot-protocol keyboard driver).
+ * libinput-wii (which drives libogc's wiikeyboard USB HID boot-protocol
+ * keyboard driver on its own thread).
  *
- * A dedicated LWP thread owns USB_Initialize()/USBKeyboard_Scan() and
- * feeds a press/release event callback, which we use to maintain a plain
- * bool[] keystate array --
+ * We turn the library's live key state into a plain bool[] keystate array --
  * exactly what SDL_GetKeyboardState() is expected to return, so the game's
  * existing keyboard bindings (Heart/InputDefaults.c) work completely
  * unmodified once a USB keyboard is plugged into the Wii.
@@ -17,13 +16,10 @@
  */
 
 #include <gccore.h>
-#include <ogc/lwp.h>
-#include <ogc/usb.h>
-#include <wiikeyboard/usbkeyboard.h>
-#include <unistd.h>
 #include <string.h>
 
 #include <SDL3/SDL.h>
+#include <input_wii.h>
 
 static bool sKeyState[SDL_SCANCODE_COUNT];
 
@@ -124,48 +120,15 @@ static SDL_Scancode HidKeycodeToScancode(u8 keyCode)
 	}
 }
 
-static void KeyboardEventHandler(USBKeyboard_event event)
-{
-	if (event.type != USBKEYBOARD_PRESSED && event.type != USBKEYBOARD_RELEASED)
-		return; /* USBKEYBOARD_DISCONNECTED: nothing to clean up here */
-
-	SDL_Scancode sc = HidKeycodeToScancode(event.keyCode);
-	if (sc == SDL_SCANCODE_UNKNOWN)
-		return;
-
-	sKeyState[sc] = (event.type == USBKEYBOARD_PRESSED);
-}
-
-static lwp_t sKeyboardThread = LWP_THREAD_NULL;
-static volatile bool sKeyboardThreadRunning = false;
-
-static void* KeyboardThreadFunc(void* arg)
-{
-	(void)arg;
-	while (sKeyboardThreadRunning)
-	{
-		if (!USBKeyboard_IsConnected())
-		{
-			USBKeyboard_Open(KeyboardEventHandler);
-		}
-		USBKeyboard_Scan();
-		usleep(400);
-	}
-	return NULL;
-}
-
-void WiiKeyboard_Init(void)
-{
-	memset(sKeyState, 0, sizeof(sKeyState));
-
-	USB_Initialize();
-	USBKeyboard_Initialize();
-
-	sKeyboardThreadRunning = true;
-	LWP_CreateThread(&sKeyboardThread, KeyboardThreadFunc, NULL, NULL, 16 * 1024, 68);
-}
-
 const bool* WiiKeyboard_GetState(void)
 {
+	/* Live state; INPUT_Init() runs from the controller setup in WiiInput.c. */
+	memset(sKeyState, 0, sizeof(sKeyState));
+	for (int code = 0; code < 256; code++)
+	{
+		SDL_Scancode sc = HidKeycodeToScancode((u8)code);
+		if (sc != SDL_SCANCODE_UNKNOWN && INPUT_KeyHeld((u8)code))
+			sKeyState[sc] = true;
+	}
 	return sKeyState;
 }

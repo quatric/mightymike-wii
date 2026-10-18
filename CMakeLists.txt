@@ -139,6 +139,12 @@ elseif(APPLE)
 	set_source_files_properties(${CMAKE_SOURCE_DIR}/packaging/${GAME_TARGET}.icns PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
 endif()
 
+# Controller and USB keyboard polling: libinput-wii
+if(CMAKE_SYSTEM_NAME STREQUAL "NintendoWii")
+	file(GLOB LIBINPUT_WII_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/extern/libinput-wii/source/*.c)
+	list(APPEND GAME_SOURCES ${LIBINPUT_WII_SOURCES})
+endif()
+
 add_executable(${GAME_TARGET} ${GAME_SOURCES})
 
 target_include_directories(${GAME_TARGET} PRIVATE ${GAME_SRCDIR}/Headers)
@@ -147,6 +153,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoWii")
 	target_include_directories(${GAME_TARGET} PRIVATE
 		${GAME_SRCDIR}                         # src/SDL3/ shim takes priority over any system SDL headers
 		${DEVKITPRO}/portlibs/wii/include      # opengx GL/gl.h, GL/glext.h
+		${CMAKE_SOURCE_DIR}/extern/libinput-wii/include
 	)
 endif()
 

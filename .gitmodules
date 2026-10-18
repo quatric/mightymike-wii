@@ -1,3 +1,6 @@
 [submodule "extern/Pomme"]
 	path = extern/Pomme
 	url = https://github.com/quatric/Pomme.git
+[submodule "extern/libinput-wii"]
+	path = extern/libinput-wii
+	url = https://github.com/quatric/libinput-wii.git
