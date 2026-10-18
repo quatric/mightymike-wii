@@ -42,6 +42,7 @@
 #include <input_wii.h>
 #include "WiiDebug.h"
 #include "WiiKeyboard.h"
+#include "WiiUpdater.h"
 
 struct SDL_Gamepad { int dummy; };
 struct SDL_Joystick { int dummy; };
@@ -69,6 +70,7 @@ static void InitWiiInput(void)
 	   pointer in the game. */
 	INPUT_InitEx(INPUT_INIT_NO_MOUSE);
 	WiiCheckpoint("InitWiiInput: INPUT_InitEx done -- complete");
+	WiiUpdate_Start();
 
 	sInputInitialized = true;
 }
@@ -227,6 +229,10 @@ void WiiInput_Poll(void)
 	bool anyConnected = false;
 	PollGameCube(&anyConnected);
 	PollWiimote(&anyConnected);
+
+	/* The update popup has the controller while it is up. */
+	if (WiiUpdate_Input(INPUT_ButtonsDown()))
+		memset(&sState, 0, sizeof(sState));
 }
 
 /* ----------------------------------------------------------------------

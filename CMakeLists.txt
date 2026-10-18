@@ -154,7 +154,29 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoWii")
 		${GAME_SRCDIR}                         # src/SDL3/ shim takes priority over any system SDL headers
 		${DEVKITPRO}/portlibs/wii/include      # opengx GL/gl.h, GL/glext.h
 		${CMAKE_SOURCE_DIR}/extern/libinput-wii/include
+		${CMAKE_SOURCE_DIR}/extern/libwiiupdate/include
 	)
+
+	# Update check: libwiiupdate builds with its own Makefile (it renames its
+	# bundled mbedTLS/miniz symbols with objcopy), then links as a plain archive.
+	set(LIBWIIUPDATE_DIR ${CMAKE_SOURCE_DIR}/extern/libwiiupdate)
+	add_custom_target(libwiiupdate
+		COMMAND ${CMAKE_COMMAND} -E env DEVKITPRO=${DEVKITPRO} DEVKITPPC=${DEVKITPRO}/devkitPPC
+			make --no-print-directory -C ${LIBWIIUPDATE_DIR}
+		BYPRODUCTS ${LIBWIIUPDATE_DIR}/lib/libwiiupdate.a
+		VERBATIM)
+	add_dependencies(${GAME_TARGET} libwiiupdate)
+
+	# The version the update check compares against GitHub releases: the tag in
+	# release builds, else packaging/wii/meta.xml.
+	if("$ENV{GITHUB_REF}" MATCHES "^refs/tags/")
+		set(WII_APP_VERSION "$ENV{GITHUB_REF_NAME}")
+	else()
+		file(READ ${CMAKE_SOURCE_DIR}/packaging/wii/meta.xml WII_META)
+		string(REGEX MATCH "<version>([^<]*)</version>" _ "${WII_META}")
+		set(WII_APP_VERSION "${CMAKE_MATCH_1}")
+	endif()
+	target_compile_definitions(${GAME_TARGET} PRIVATE APP_VERSION="${WII_APP_VERSION}")
 endif()
 
 #------------------------------------------------------------------------------
@@ -235,6 +257,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoWii")
 	# subsystem libs stand in for both.
 	target_link_libraries(${GAME_TARGET} PRIVATE
 		Pomme
+		${LIBWIIUPDATE_DIR}/lib/libwiiupdate.a
 		opengx
 		m
 		wiiuse

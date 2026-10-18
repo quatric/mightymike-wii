@@ -28,6 +28,7 @@
 
 #ifdef __wii__
 #include <stdlib.h>
+#include "WiiUpdater.h"
 #endif
 PFNGLGENBUFFERSARBPROC glGenBuffersARB;
 PFNGLDELETEBUFFERSARBPROC glDeleteBuffersARB;
@@ -364,6 +365,7 @@ void GLRender_PresentFramebuffer(void)
 
 	// now write data into the buffer, possibly in another thread
 	ConvertFramebufferMT(mappedBuffer);
+	WiiUpdate_Draw(mappedBuffer, zvw, zvh);
 #else
 	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, gFramePBO);
 	CHECK_GL_ERROR();
